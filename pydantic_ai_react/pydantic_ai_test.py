@@ -1,29 +1,25 @@
-from environs import Env
-import httpx
 from pydantic_ai import Agent
 from loguru import logger
-from pydantic_ai_react.pydantic_ai_react import react_tool, REACT_BASE_PROMPT
+from pydantic_ai_react.pydantic_ai_react import react_tool
+from lib.tools import search_impl, access_url_impl
+from lib.env import load_env
+from lib.prompts import USER_QUESTION, PYDANTIC_REACT_SYSTEM_PROMPT
 
 
-def log_formated_thought(thought: str):
+def log_formated_thought(thought: str) -> None:
     logger.info(f"Thought: {thought}")
 
-
-env = Env()
-env.read_env()
-SERPER_API_KEY = env.str("SERPER_API_KEY")
-serper_client = httpx.Client(headers={"X-API-KEY": SERPER_API_KEY})
 
 agent = Agent(
     model="openai:gpt-4o",
     result_type=str,
-    system_prompt=REACT_BASE_PROMPT,
+    system_prompt=PYDANTIC_REACT_SYSTEM_PROMPT,
 )
 
 
 @agent.tool_plain
 @react_tool(log_formated_thought)
-def search(query: str):
+def search(query: str) -> str:
     """
     Search for a query on Google
 
@@ -33,23 +29,12 @@ def search(query: str):
     Returns:
         str: The search results
     """
-
-    logger.info(f"Searching for: {query}")
-
-    serper_google_url = "https://google.serper.dev/search"
-    payload = {"q": query}
-
-    try:
-        response = serper_client.post(serper_google_url, json=payload)
-        return f"{response.text}"
-    except Exception:
-        logger.error("Error searching for the query")
-        return "There was an error while searching for the query"
+    return search_impl(query)
 
 
 @agent.tool_plain
 @react_tool(log_formated_thought)
-def access_url(url: str):
+def access_url(url: str) -> str:
     """
     Access a URL and scrape the content
 
@@ -59,22 +44,14 @@ def access_url(url: str):
     Returns:
         str: The scraped content
     """
-
-    logger.info(f"Accessing URL: {url}")
-
-    serper_scraper_url = "https://scrape.serper.dev"
-    payload = {"url": url}
-
-    try:
-        response = serper_client.post(serper_scraper_url, json=payload)
-        return f"{response.text}"
-    except Exception:
-        logger.error("Error accessing the URL")
-        return "There was an error while accessing the URL"
+    return access_url_impl(url)
 
 
-result = agent.run_sync(
-    "What is Apple’s best performing product line from the financial perspective? And what are they marketing on their website?"
-)
+def main():
+    load_env()
+    result = agent.run_sync(USER_QUESTION)
+    logger.info(result.data)
 
-logger.info(result.data)
+
+if __name__ == "__main__":
+    main()

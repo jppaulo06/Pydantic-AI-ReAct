@@ -28,4 +28,10 @@ To do
 
 ## Crew AI
 
-Builtin - the most easy one
+Implementing a ReAct agent in Crew AI is straightforward, since it is already
+there. A test implementation is in the `crew_ai_react.crew_ai_test` module.
+
+To run it:
+```bash
+uv run -m crew_ai_react.crew_ai_test
+```
